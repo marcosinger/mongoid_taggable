@@ -105,7 +105,6 @@ module Mongoid::Taggable
     end
   end
 
-
   def tags
     (tags_array || []).join(self.class.tags_separator)
   end
@@ -116,9 +115,5 @@ module Mongoid::Taggable
     else
      self.tags_array = []
     end
-  end
-
-  def save_tags_index!
-    self.class.save_tags_index!
   end
 end

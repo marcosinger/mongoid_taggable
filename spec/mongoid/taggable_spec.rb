@@ -21,98 +21,104 @@ class MyModel
 end
 
 describe Mongoid::Taggable do
-
   describe "default tags array value" do
-    it 'should be an empty array' do
-      MyModel.new.tags_array.should == []
-    end
+    subject {MyModel.new}
+
+    its(:tags_array) {should be_empty}
   end
 
   context "finding" do
-    let(:model){MyModel.create!(:tags => "interesting,stuff,good,bad")}
-    context "by tagged_with" do
-      let(:models){MyModel.tagged_with('interesting')}
-      it "locates tagged objects" do
-        models.include?(model).should be_true
+    let(:model) {MyModel.create!(:tags => "interesting,stuff,good,bad")}
+
+    context ".tagged_with" do
+      subject {MyModel.tagged_with('interesting')}
+      it {should be_include(model)}
+    end
+
+    context ".tagged_with_all" do
+      context 'using array' do
+        subject {MyModel.tagged_with_all(['interesting', 'good'])}
+        it {should be_include(model)}
+      end
+
+      context "using strings" do
+        subject {MyModel.tagged_with_all('interesting', 'good')}
+        it {should be_include(model)}
+      end
+
+      context "by tagged_with_all when tag not included" do
+        subject {MyModel.tagged_with_all('interesting', 'good', 'mcdonalds')}
+        it {should_not be_include(model)}
       end
     end
-    context "by tagged_with_all using an array" do
-      let(:models){MyModel.tagged_with_all(['interesting', 'good'])}
-      it "locates tagged objects" do
-        models.include?(model).should be_true
+
+    context ".tagged_with_any" do
+      context 'using an array' do
+        subject {MyModel.tagged_with_any(['interesting', 'mcdonalds'])}
+        it {should be_include(model)}
       end
-    end
-    context "by tagged_with_all using strings" do
-      let(:models){MyModel.tagged_with_all('interesting', 'good')}
-      it "locates tagged objects" do
-        models.include?(model).should be_true
+
+      context "using strings" do
+        subject {MyModel.tagged_with_any('interesting', 'mcdonalds')}
+        it {should be_include(model)}
       end
-    end
-    context "by tagged_with_all when tag not included" do
-      let(:models){MyModel.tagged_with_all('interesting', 'good', 'mcdonalds')}
-      it "locates tagged objects" do
-        models.include?(model).should be_false
-      end
-    end
-    context "by tagged_with_any using an array" do
-      let(:models){MyModel.tagged_with_any(['interesting', 'mcdonalds'])}
-      it "locates tagged objects" do
-        models.include?(model).should be_true
-      end
-    end
-    context "by tagged_with_any using strings" do
-      let(:models){MyModel.tagged_with_any('interesting', 'mcdonalds')}
-      it "locates tagged objects" do
-        models.include?(model).should be_true
-      end
-    end
-    context "by tagged_with_any when tag not included" do
-      let(:models){MyModel.tagged_with_any('hardees', 'wendys', 'mcdonalds')}
-      it "locates tagged objects" do
-        models.include?(model).should be_false
+
+      context "when tag not included" do
+        subject {MyModel.tagged_with_any('hardees', 'wendys', 'mcdonalds')}
+        it {should_not be_include(model)}
       end
     end
   end
 
-  context "saving tags from plain text" do
-    before :each do
-      @m = MyModel.new
+  context "saving tags" do
+    context 'from tags to tags_array' do
+      subject do
+        MyModel.new.tap {|model| model.tags = tags}
+      end
+
+      context "set tags array from string" do
+        let(:tags) {"some,new,tag"}
+        its(:tags_array) {should == ["some", "new", "tag"]}
+      end
+
+      context "strip tags" do
+        let(:tags) {"now ,  with, some spaces  , in places "}
+        its(:tags_array) {should == ["now", "with", "some spaces", "in places"]}
+      end
+
+      context "clear empty tags" do
+        let(:tags) {"repetitive,, commas, shouldn't cause,,, empty tags"}
+        its(:tags_array) {should == ["repetitive", "commas", "shouldn't cause", "empty tags"]}
+      end
     end
 
-    it "should set tags array from string" do
-      @m.tags = "some,new,tag"
-      @m.tags_array.should == %w[some new tag]
-    end
+    context 'from tag_arrays to tags' do
+      subject do
+        MyModel.new.tap {|model| model.tags_array = array}
+      end
 
-    it "should retrieve tags string from array" do
-      @m.tags_array = %w[some new tags]
-      @m.tags.should == "some,new,tags"
-    end
-
-    it "should strip tags before put in array" do
-      @m.tags = "now ,  with, some spaces  , in places "
-      @m.tags_array.should == ["now", "with", "some spaces", "in places"]
-    end
-
-    it "should not put empty tags in array" do
-      @m.tags = "repetitive,, commas, shouldn't cause,,, empty tags"
-      @m.tags_array.should == ["repetitive", "commas", "shouldn't cause", "empty tags"]
-    end
-
-    it "should clear out tags when set to nil" do
-      m = MyModel.create!(tags: "hey,there")
-      m.tags = nil
-      m.tags_array.should == []
-    end
-
-    it "should clear out tags when set to empty string" do
-      m = MyModel.create!(tags: "hey,there")
-      m.tags = ""
-      m.tags_array.should == []
+      context "tags string from array" do
+        let(:array) {["some", "new", "tags"]}
+        its(:tags) {should == "some,new,tags"}
+      end
     end
   end
 
-  context "changing separator" do
+  context 'clear tags' do
+    subject {MyModel.create!(tags: "hey,there")}
+
+    context "when tags set to nil" do
+      before {subject.tags = nil}
+      its(:tags_array) {should be_empty}
+    end
+
+    context "when tags set to empty string" do
+      before {subject.tags = ""}
+      its(:tags_array) {should be_empty}
+    end
+  end
+
+  context ".tags_separator" do
     before :all do
       MyModel.tags_separator ";"
     end
@@ -121,18 +127,14 @@ describe Mongoid::Taggable do
       MyModel.tags_separator ","
     end
 
-    before :each do
-      @m = MyModel.new
+    context "split" do
+      subject {MyModel.new.tap {|model| model.tags = "some;other;separator"}}
+      its(:tags_array) {should == %w[some other separator]}
     end
 
-    it "should split with custom separator" do
-      @m.tags = "some;other;separator"
-      @m.tags_array.should == %w[some other separator]
-    end
-
-    it "should join with custom separator" do
-      @m.tags_array = %w[some other sep]
-      @m.tags.should == "some;other;sep"
+    context "join" do
+      subject {MyModel.new.tap {|model| model.tags_array = ["some", "other", "sep"]}}
+      its(:tags) {should == "some;other;sep"}
     end
   end
 
@@ -198,7 +200,5 @@ describe Mongoid::Taggable do
       m.name = 'hello'
       m.save
     end
-
   end
-
 end

@@ -1,1 +1,1 @@
-require File.join(File.dirname(__FILE__), 'mongoid/taggable')
+require_relative 'mongoid/taggable'
