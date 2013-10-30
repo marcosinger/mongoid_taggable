@@ -16,7 +16,7 @@ module Mongoid::Taggable
   extend ActiveSupport::Concern
 
   included do
-    cattr_accessor :enable_index, :separator
+    cattr_accessor :enable_index, :separator, :tags_index_collection_name
 
     # create fields for tags and index it
     field :tags_array, :type => Array, :default => []
@@ -27,19 +27,22 @@ module Mongoid::Taggable
       document.class.save_tags_index! if document.tags_array_changed?
     end
 
-    # enable indexing as default
-    # separator is comma as default
-    taggable enable_index: true, separator: ','
+    # call the taggable method for enable the default options
+    taggable
   end
 
   module ClassMethods
-    # returns an array of distinct ordered list of tags defined in all documents
 
+    # enable indexing as default
+    # separator is comma as default
+    # collection_name is the class name as default
     def taggable(options={})
-      self.enable_index = options[:enable_index]
-      self.separator = options[:separator]
+      self.enable_index               = options.fetch(:enable_index, true)
+      self.separator                  = options.fetch(:separator, ',')
+      self.tags_index_collection_name = options.fetch(:tags_index_collection_name, "#{collection_name}_tags_index")
     end
 
+    # returns an array of distinct ordered list of tags defined in all documents
     def tagged_with(tag)
       self.any_in(:tags_array => [tag])
     end
@@ -62,12 +65,8 @@ module Mongoid::Taggable
       tags_index_collection.find.to_a.map{ |r| [r["_id"], r["value"]] }
     end
 
-    def tags_index_collection_name
-      "#{collection_name}_tags_index"
-    end
-
     def tags_index_collection
-      @tags_index_collection ||= Moped::Collection.new(self.collection.database, tags_index_collection_name)
+      @tags_index_collection ||= Moped::Collection.new(self.collection.database, self.tags_index_collection_name)
     end
 
     def save_tags_index!
@@ -96,7 +95,7 @@ module Mongoid::Taggable
       # Since map_reduce is normally lazy-executed, call 'raw'
       # Should not be influenced by scoping. Let consumers worry about
       # removing tags they wish not to appear in index.
-      self.unscoped.map_reduce(map, reduce).out(replace: tags_index_collection_name).raw
+      self.unscoped.map_reduce(map, reduce).out(replace: self.tags_index_collection_name).raw
     end
   end
 
