@@ -16,7 +16,7 @@ module Mongoid::Taggable
   extend ActiveSupport::Concern
 
   included do
-    cattr_accessor :enable_index
+    cattr_accessor :enable_index, :separator
 
     # create fields for tags and index it
     field :tags_array, :type => Array, :default => []
@@ -28,7 +28,8 @@ module Mongoid::Taggable
     end
 
     # enable indexing as default
-    taggable enable_index: true
+    # separator is comma as default
+    taggable enable_index: true, separator: ','
   end
 
   module ClassMethods
@@ -36,6 +37,7 @@ module Mongoid::Taggable
 
     def taggable(options={})
       self.enable_index = options[:enable_index]
+      self.separator = options[:separator]
     end
 
     def tagged_with(tag)
@@ -58,11 +60,6 @@ module Mongoid::Taggable
     # creating tag clouds
     def tags_with_weight
       tags_index_collection.find.to_a.map{ |r| [r["_id"], r["value"]] }
-    end
-
-    def tags_separator(separator = nil)
-      @tags_separator = separator if separator
-      @tags_separator || ','
     end
 
     def tags_index_collection_name
@@ -104,12 +101,12 @@ module Mongoid::Taggable
   end
 
   def tags
-    (tags_array || []).join(self.class.tags_separator)
+    (tags_array || []).join(self.class.separator)
   end
 
   def tags=(tags)
     if tags.present?
-      self.tags_array = tags.split(self.class.tags_separator).map(&:strip).reject(&:blank?)
+      self.tags_array = tags.split(self.class.separator).map(&:strip).reject(&:blank?)
     else
      self.tags_array = []
     end

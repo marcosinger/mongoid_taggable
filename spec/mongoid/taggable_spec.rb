@@ -120,21 +120,20 @@ describe Mongoid::Taggable do
   end
 
   context ".tags_separator" do
-    before :all do
-      MyModel.tags_separator ";"
-    end
+    class ModelSeparator
+      include Mongoid::Document
+      include Mongoid::Taggable
 
-    after :all do
-      MyModel.tags_separator ","
+      taggable separator: ';'
     end
 
     context "split" do
-      subject {MyModel.new.tap {|model| model.tags = "some;other;separator"}}
+      subject {ModelSeparator.new.tap {|model| model.tags = "some;other;separator"}}
       its(:tags_array) {should == %w[some other separator]}
     end
 
     context "join" do
-      subject {MyModel.new.tap {|model| model.tags_array = ["some", "other", "sep"]}}
+      subject {ModelSeparator.new.tap {|model| model.tags_array = ["some", "other", "sep"]}}
       its(:tags) {should == "some;other;sep"}
     end
   end
