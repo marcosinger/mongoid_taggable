@@ -12,119 +12,80 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-module Mongoid::Taggable
-  extend ActiveSupport::Concern
+module Mongoid
+  module Taggable
+    extend ActiveSupport::Concern
 
-  included do
-    cattr_accessor :enable_index, :separator, :tags_index_collection_name
+    included do
+      include Base
 
-    # create fields for tags and index it
-    field :tags_array, :type => Array, :default => []
-    index({ tags_array: 1 })
-
-    # add callback to save tags index
-    after_save do |document|
-      document.class.save_tags_index! if document.tags_array_changed?
+      # create fields for tags and index it
+      field :tags_array, :type => Array, :default => []
+      index({ tags_array: 1 })
     end
 
-    # call the taggable method for enable the default options
-    taggable
-  end
+    module ClassMethods
 
-  module ClassMethods
+      # returns an array of distinct ordered list of tags defined in all documents
+      def tagged_with(tag)
+        self.any_in(:tags_array => [tag])
+      end
 
-    # enable indexing as default
-    # separator is comma as default
-    # collection_name is the class name as default
-    def taggable(options={})
-      self.enable_index               = options.fetch(:enable_index, true)
-      self.separator                  = options.fetch(:separator, ',')
-      self.tags_index_collection_name = options.fetch(:tags_index_collection_name, "#{collection_name}_tags_index")
-    end
+      def tagged_with_all(*tags)
+        self.all_in(:tags_array => tags.flatten)
+      end
 
-    # returns an array of distinct ordered list of tags defined in all documents
-    def tagged_with(tag)
-      self.any_in(:tags_array => [tag])
-    end
+      def tagged_with_any(*tags)
+        self.any_in(:tags_array => tags.flatten)
+      end
 
-    def tagged_with_all(*tags)
-      self.all_in(:tags_array => tags.flatten)
-    end
+      def tags
+        tags_on_index { |r| r["_id"] }
+      end
 
-    def tagged_with_any(*tags)
-      self.any_in(:tags_array => tags.flatten)
-    end
+      # retrieve the list of tags with weight (i.e. count).
+      # this is useful for creating tag clouds
+      def tags_with_weight
+        tags_on_index { |r| [r["_id"], r["value"]] }
+      end
 
-    def tags
-      tags_on_index { |r| r["_id"] }
-    end
+      def map
+        <<-map
+          function() {
+            if (!this.tags_array) {
+              return;
+            }
 
-    # retrieve the list of tags with weight (i.e. count).
-    # this is useful for creating tag clouds
-    def tags_with_weight
-      tags_on_index { |r| [r["_id"], r["value"]] }
-    end
-
-    def save_tags_index!
-      return if !self.enable_index
-
-      # Since map_reduce is normally lazy-executed, call 'raw'
-      # Should not be influenced by scoping. Let consumers worry about
-      # removing tags they wish not to appear in index.
-      self.unscoped.map_reduce(map, reduce).out(replace: self.tags_index_collection_name).raw
-    end
-
-    private
-
-    def tags_on_index(&block)
-      tags_index_collection.find.to_a.map &block
-    end
-
-    def tags_index_collection
-      @tags_index_collection ||= Moped::Collection.new(self.collection.database, self.tags_index_collection_name)
-    end
-
-    def map
-      <<-map
-        function() {
-          if (!this.tags_array) {
-            return;
+            for (index in this.tags_array) {
+              emit(this.tags_array[index], 1);
+            }
           }
+        map
+      end
 
-          for (index in this.tags_array) {
-            emit(this.tags_array[index], 1);
+      def reduce
+        <<-reduce
+          function(previous, current) {
+            var count = 0;
+
+            for (index in current) {
+              count += current[index]
+            }
+
+            return count;
           }
-        }
-      map
+        reduce
+      end
     end
 
-    def reduce
-      <<-reduce
-        function(previous, current) {
-          var count = 0;
+    module InstanceMethods
+      def tags
+        (tags_array || []).join(self.class.separator)
+      end
 
-          for (index in current) {
-            count += current[index]
-          }
-
-          return count;
-        }
-      reduce
+      def tags=(tags)
+        self.tags_array = tag_list_to_array(tags)
+      end
     end
-  end
-
-  def tags
-    (tags_array || []).join(self.class.separator)
-  end
-
-  def tags=(tags)
-    self.tags_array = tag_list_to_array(tags)
-  end
-
-  private
-
-  def tag_list_to_array(tags)
-    return [] if !tags.present?
-    tags.split(self.class.separator).map(&:strip).reject(&:blank?)
   end
 end
