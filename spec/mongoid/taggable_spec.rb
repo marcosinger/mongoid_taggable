@@ -143,10 +143,6 @@ describe Mongoid::Taggable do
       MyModel.tags_index_collection_name.should == "my_models_tags_index"
     end
 
-    it "should generate the index collection model based on model" do
-      MyModel.tags_index_collection.should be_a Moped::Collection
-    end
-
     context "retrieving index" do
       before :each do
         MyModel.create!(:tags => "food,ant,bee")

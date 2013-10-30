@@ -56,46 +56,60 @@ module Mongoid::Taggable
     end
 
     def tags
-      tags_index_collection.find.to_a.map{ |r| r["_id"] }
+      tags_on_index { |r| r["_id"] }
     end
 
-    # retrieve the list of tags with weight (i.e. count), this is useful for
-    # creating tag clouds
+    # retrieve the list of tags with weight (i.e. count).
+    # this is useful for creating tag clouds
     def tags_with_weight
-      tags_index_collection.find.to_a.map{ |r| [r["_id"], r["value"]] }
+      tags_on_index { |r| [r["_id"], r["value"]] }
+    end
+
+    def save_tags_index!
+      return if !self.enable_index
+
+      # Since map_reduce is normally lazy-executed, call 'raw'
+      # Should not be influenced by scoping. Let consumers worry about
+      # removing tags they wish not to appear in index.
+      self.unscoped.map_reduce(map, reduce).out(replace: self.tags_index_collection_name).raw
+    end
+
+    private
+
+    def tags_on_index(&block)
+      tags_index_collection.find.to_a.map &block
     end
 
     def tags_index_collection
       @tags_index_collection ||= Moped::Collection.new(self.collection.database, self.tags_index_collection_name)
     end
 
-    def save_tags_index!
-      return if !self.enable_index
+    def map
+      <<-map
+        function() {
+          if (!this.tags_array) {
+            return;
+          }
 
-      map = "function() {
-        if (!this.tags_array) {
-          return;
+          for (index in this.tags_array) {
+            emit(this.tags_array[index], 1);
+          }
         }
+      map
+    end
 
-        for (index in this.tags_array) {
-          emit(this.tags_array[index], 1);
+    def reduce
+      <<-reduce
+        function(previous, current) {
+          var count = 0;
+
+          for (index in current) {
+            count += current[index]
+          }
+
+          return count;
         }
-      }"
-
-      reduce = "function(previous, current) {
-        var count = 0;
-
-        for (index in current) {
-          count += current[index]
-        }
-
-        return count;
-      }"
-
-      # Since map_reduce is normally lazy-executed, call 'raw'
-      # Should not be influenced by scoping. Let consumers worry about
-      # removing tags they wish not to appear in index.
-      self.unscoped.map_reduce(map, reduce).out(replace: self.tags_index_collection_name).raw
+      reduce
     end
   end
 
@@ -104,10 +118,13 @@ module Mongoid::Taggable
   end
 
   def tags=(tags)
-    if tags.present?
-      self.tags_array = tags.split(self.class.separator).map(&:strip).reject(&:blank?)
-    else
-     self.tags_array = []
-    end
+    self.tags_array = tag_list_to_array(tags)
+  end
+
+  private
+
+  def tag_list_to_array(tags)
+    return [] if !tags.present?
+    tags.split(self.class.separator).map(&:strip).reject(&:blank?)
   end
 end
