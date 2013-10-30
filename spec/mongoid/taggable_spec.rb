@@ -17,6 +17,7 @@ require File.join(File.dirname(__FILE__), %w[.. spec_helper])
 class MyModel
   include Mongoid::Document
   include Mongoid::Taggable
+
   field :name
 end
 
@@ -172,17 +173,17 @@ describe Mongoid::Taggable do
     end
 
     context "avoiding index generation" do
-      before :all do
-        MyModel.disable_tags_index!
+      class ModelWithoutIndex
+        include Mongoid::Document
+        include Mongoid::Taggable
+
+        taggable enable_index: false
       end
 
-      after :all do
-        MyModel.enable_tags_index!
-      end
+      before {ModelWithoutIndex.create!(:tags => "sample,tags")}
 
       it "should not generate index" do
-        MyModel.create!(:tags => "sample,tags")
-        MyModel.tags.should == []
+        ModelWithoutIndex.tags.should == []
       end
     end
 

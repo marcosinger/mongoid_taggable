@@ -16,6 +16,8 @@ module Mongoid::Taggable
   extend ActiveSupport::Concern
 
   included do
+    cattr_accessor :enable_index
+
     # create fields for tags and index it
     field :tags_array, :type => Array, :default => []
     index({ tags_array: 1 })
@@ -26,11 +28,15 @@ module Mongoid::Taggable
     end
 
     # enable indexing as default
-    enable_tags_index!
+    taggable enable_index: true
   end
 
   module ClassMethods
     # returns an array of distinct ordered list of tags defined in all documents
+
+    def taggable(options={})
+      self.enable_index = options[:enable_index]
+    end
 
     def tagged_with(tag)
       self.any_in(:tags_array => [tag])
@@ -54,14 +60,6 @@ module Mongoid::Taggable
       tags_index_collection.find.to_a.map{ |r| [r["_id"], r["value"]] }
     end
 
-    def disable_tags_index!
-      @do_tags_index = false
-    end
-
-    def enable_tags_index!
-      @do_tags_index = true
-    end
-
     def tags_separator(separator = nil)
       @tags_separator = separator if separator
       @tags_separator || ','
@@ -76,7 +74,7 @@ module Mongoid::Taggable
     end
 
     def save_tags_index!
-      return unless @do_tags_index
+      return if !self.enable_index
 
       map = "function() {
         if (!this.tags_array) {
