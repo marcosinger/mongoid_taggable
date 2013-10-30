@@ -4,6 +4,7 @@ SimpleCov.start
 $: << File.expand_path("../../lib", __FILE__)
 
 require 'database_cleaner'
+require 'pry'
 
 RSpec.configure do |config|
   config.before(:suite) do

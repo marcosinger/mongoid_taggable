@@ -8,4 +8,5 @@ group :test do
   gem 'rdoc'
   gem 'database_cleaner'
   gem 'simplecov'
+  gem 'pry'
 end
