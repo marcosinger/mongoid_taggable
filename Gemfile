@@ -7,4 +7,5 @@ group :test do
   gem 'rspec', '>= 2'
   gem 'rdoc'
   gem 'database_cleaner'
+  gem 'simplecov'
 end

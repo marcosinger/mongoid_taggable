@@ -6,3 +6,13 @@ pkg/
 .rbenv-version
 Gemfile.lock
 .DS_Store
+
+# simplecov
+coverage/
+
+# bundle folders
+.bundle/
+vendor/cache/*
+
+# rspec
+.rspec
