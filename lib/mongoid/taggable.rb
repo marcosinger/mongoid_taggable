@@ -39,16 +39,6 @@ module Mongoid
         self.any_in(:tags_array => tags.flatten)
       end
 
-      def tags
-        tags_on_index { |r| r["_id"] }
-      end
-
-      # retrieve the list of tags with weight (i.e. count).
-      # this is useful for creating tag clouds
-      def tags_with_weight
-        tags_on_index { |r| [r["_id"], r["value"]] }
-      end
-
       def map
         <<-map
           function() {
@@ -62,20 +52,6 @@ module Mongoid
           }
         map
       end
-
-      def reduce
-        <<-reduce
-          function(previous, current) {
-            var count = 0;
-
-            for (index in current) {
-              count += current[index]
-            }
-
-            return count;
-          }
-        reduce
-      end
     end
 
     module InstanceMethods
@@ -85,6 +61,12 @@ module Mongoid
 
       def tags=(tags)
         self.tags_array = tag_list_to_array(tags)
+      end
+
+      private
+
+      def taggable_field_changed?
+        tags_array_changed?
       end
     end
   end

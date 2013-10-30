@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require File.join(File.dirname(__FILE__), %w[.. spec_helper])
+require "spec_helper"
 
 class MyModel
   include Mongoid::Document
@@ -47,7 +47,7 @@ describe Mongoid::Taggable do
         it {should be_include(model)}
       end
 
-      context "by tagged_with_all when tag not included" do
+      context "when tag not included" do
         subject {MyModel.tagged_with_all('interesting', 'good', 'mcdonalds')}
         it {should_not be_include(model)}
       end

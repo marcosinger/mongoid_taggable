@@ -22,7 +22,7 @@ module Mongoid
 
         # add callback to save tags index
         after_save do |document|
-          document.class.save_tags_index! if document.tags_array_changed?
+          document.class.save_tags_index! if taggable_field_changed?
         end
 
         # call the taggable method for enable the default options
@@ -39,6 +39,16 @@ module Mongoid
           self.tags_index_collection_name = options.fetch(:tags_index_collection_name, "#{collection_name}_tags_index")
         end
 
+        def tags
+          tags_on_index { |r| r["_id"] }
+        end
+
+        # retrieve the list of tags with weight (i.e. count).
+        # this is useful for creating tag clouds
+        def tags_with_weight
+          tags_on_index { |r| [r["_id"], r["value"]] }
+        end
+
         def save_tags_index!
           return if !self.enable_index
 
@@ -46,6 +56,20 @@ module Mongoid
           # Should not be influenced by scoping. Let consumers worry about
           # removing tags they wish not to appear in index.
           self.unscoped.map_reduce(map, reduce).out(replace: self.tags_index_collection_name).raw
+        end
+
+        def reduce
+          <<-reduce
+            function(_, current) {
+              var count = 0;
+
+              for (index in current) {
+                count += current[index]
+              }
+
+              return count;
+            }
+          reduce
         end
 
         private
