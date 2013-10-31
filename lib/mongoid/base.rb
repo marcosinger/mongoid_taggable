@@ -39,16 +39,6 @@ module Mongoid
           self.tags_index_collection_name = options.fetch(:tags_index_collection_name, "#{collection_name}_tags_index")
         end
 
-        def tags
-          tags_on_index { |r| r["_id"] }
-        end
-
-        # retrieve the list of tags with weight (i.e. count).
-        # this is useful for creating tag clouds
-        def tags_with_weight
-          tags_on_index { |r| [r["_id"], r["value"]] }
-        end
-
         def save_tags_index!
           return if !self.enable_index
 
@@ -73,10 +63,6 @@ module Mongoid
         end
 
         private
-
-        def tags_on_index(&block)
-          tags_index_collection.find.to_a.map &block
-        end
 
         def tags_index_collection
           @tags_index_collection ||= Moped::Collection.new(self.collection.database, self.tags_index_collection_name)

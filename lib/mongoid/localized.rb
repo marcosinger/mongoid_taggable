@@ -22,6 +22,17 @@ module Mongoid
           self.any_in("localized_tags.#{I18n.locale}" => tags.flatten)
         end
 
+        def tags
+          tags_on_index { |r| r['_id']['tag'] }
+        end
+
+        # retrieve the list of tags with weight by locale (i.e. count).
+        # this is useful for creating tag clouds
+        def tags_with_weight(locale=nil)
+          tags_on_index(locale) { |r| [r['_id']['tag'], r["value"]] }
+        end
+
+        # creating a map by tag and locale
         def map
           <<-map
             function() {
@@ -29,11 +40,25 @@ module Mongoid
                 return;
               }
 
-              for (index in this.localized_tags["#{I18n.locale}"]) {
-                emit(this.localized_tags["#{I18n.locale}"][index], 1);
+              for (locale in this.localized_tags) {
+                for (index in this.localized_tags[locale]) {
+                  var key = {
+                    tag: this.localized_tags[locale][index],
+                    locale: locale
+                  }
+
+                  emit(key, 1);
+                }
               }
             }
           map
+        end
+
+        private
+
+        def tags_on_index(locale=nil, &block)
+          locale ||= I18n.locale
+          tags_index_collection.find({'_id.locale' => locale}).to_a.map &block
         end
       end
 

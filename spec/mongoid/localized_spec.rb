@@ -222,53 +222,61 @@ describe Mongoid::Taggable::Localized do
     end
 
     context "retrieving index" do
-      context 'en locale' do
-        before do
-          LocalizedModel.create!(:tags => {"en" => "food,ant,bee,hangar"})
-          LocalizedModel.create!(:tags => {"en" => "juice,food,bee,zip"})
-          LocalizedModel.create!(:tags => {"en" => "honey,strip,food"})
-        end
+      before do
+        LocalizedModel.create!(:tags => {"pt-BR" => "samba,rio,spfc,soccer", "en" => "food,ant,bee,hangar"})
+        LocalizedModel.create!(:tags => {"pt-BR" => "carnaval,spfc", "en" => "juice,food,bee,zip"})
+        LocalizedModel.create!(:tags => {"pt-BR" => "spfc,rio,paulista", "en" => "honey,strip,food"})
+      end
 
+      let(:en_weight) {[
+        ['ant', 1],
+        ['bee', 2],
+        ['food', 3],
+        ['hangar', 1],
+        ['honey', 1],
+        ['juice', 1],
+        ['strip', 1],
+        ['zip', 1]
+      ]}
+
+      let(:pt_weight) {[
+        ['carnaval', 1],
+        ['paulista', 1],
+        ['rio', 2],
+        ['samba', 1],
+        ['soccer', 1],
+        ['spfc', 3]
+      ]}
+
+      context 'en locale' do
         it "should retrieve the list of all saved tags distinct and ordered" do
           LocalizedModel.tags.should == %w[ant bee food hangar honey juice strip zip]
         end
 
         it "should retrieve a list of tags with weight" do
-          LocalizedModel.tags_with_weight.should == [
-            ['ant', 1],
-            ['bee', 2],
-            ['food', 3],
-            ['hangar', 1],
-            ['honey', 1],
-            ['juice', 1],
-            ['strip', 1],
-            ['zip', 1]
-          ]
+          LocalizedModel.tags_with_weight.should eq(en_weight) 
         end
       end
 
       context 'pt-BR locale' do
         before {I18n.locale = 'pt-BR'}
 
-        before do
-          LocalizedModel.create!(:tags => {"pt-BR" => "samba,rio,spfc,soccer"})
-          LocalizedModel.create!(:tags => {"pt-BR" => "carnaval,spfc"})
-          LocalizedModel.create!(:tags => {"pt-BR" => "spfc,rio,paulista"})
-        end
-
         it "should retrieve the list of all saved tags distinct and ordered" do
           LocalizedModel.tags.should == %w[carnaval paulista rio samba soccer spfc]
         end
 
         it "should retrieve a list of tags with weight" do
-          LocalizedModel.tags_with_weight.should == [
-            ['carnaval', 1],
-            ['paulista', 1],
-            ['rio', 2],
-            ['samba', 1],
-            ['soccer', 1],
-            ['spfc', 3]
-          ]
+          LocalizedModel.tags_with_weight.should eq(pt_weight)
+        end
+      end
+
+      context 'passing locale' do
+        context 'en locale' do
+          it {LocalizedModel.tags_with_weight('en').should eq(en_weight)}
+        end
+
+        context 'pt-BR locale' do
+          it {LocalizedModel.tags_with_weight('pt-BR').should eq(pt_weight)}
         end
       end
     end

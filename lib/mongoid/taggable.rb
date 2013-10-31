@@ -39,6 +39,16 @@ module Mongoid
         self.any_in(:tags_array => tags.flatten)
       end
 
+      def tags
+        tags_on_index { |r| r['_id'] }
+      end
+
+      # retrieve the list of tags with weight (i.e. count).
+      # this is useful for creating tag clouds
+      def tags_with_weight
+        tags_on_index { |r| [r['_id'], r['value']] }
+      end
+
       def map
         <<-map
           function() {
@@ -51,6 +61,12 @@ module Mongoid
             }
           }
         map
+      end
+
+      private
+
+      def tags_on_index(&block)
+        tags_index_collection.find.to_a.map &block
       end
     end
 
