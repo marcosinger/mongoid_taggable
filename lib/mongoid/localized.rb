@@ -25,7 +25,7 @@ module Mongoid
         def map
           <<-map
             function() {
-              if (this.localized_tags === null || !this.localized_tags["#{I18n.locale}"]) {
+              if (this.localized_tags === undefined || this.localized_tags === null || !this.localized_tags["#{I18n.locale}"]) {
                 return;
               }
 

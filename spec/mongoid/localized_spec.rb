@@ -188,7 +188,7 @@ describe Mongoid::Taggable::Localized do
 
   context "indexing tags" do
     context 'legacy' do
-      context 'persisted model without localized_tags' do
+      context 'an already persisted model without localized_tags' do
         let(:localized) {LocalizedModel.new(tags: {"en" => "food,ant,bee,hangar"})}
         before {LocalizedModel.create(localized_tags: nil)}
 
@@ -197,6 +197,26 @@ describe Mongoid::Taggable::Localized do
         context 'tags list' do
           before {localized.save}
           it {LocalizedModel.tags.should == %w[ant bee food hangar]}
+        end
+      end
+
+      # TODO create a shared example or something else to refactor this part
+      context 'include module with an already persisted model' do
+        class ModelWithoutLocalize
+          include Mongoid::Document
+        end
+
+        before do
+          ModelWithoutLocalize.create
+          ModelWithoutLocalize.send :include, Mongoid::Taggable::Localized
+        end
+
+        let(:model) {ModelWithoutLocalize.new(tags: {"en" => "juice,food,bee,zip"})}
+        it {expect {model.save}.to_not raise_error}
+
+        context 'tags list' do
+          before {model.save}
+          it {ModelWithoutLocalize.tags.should == %w[bee food juice zip]}
         end
       end
     end
