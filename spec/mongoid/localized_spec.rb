@@ -278,6 +278,10 @@ describe Mongoid::Taggable::Localized do
         context 'pt-BR locale' do
           it {LocalizedModel.tags_with_weight('pt-BR').should eq(pt_weight)}
         end
+
+        context 'locale without a tags list' do
+          it {LocalizedModel.tags_with_weight('fr').should be_empty}
+        end
       end
     end
   end
