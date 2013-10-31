@@ -229,9 +229,9 @@ describe Mongoid::Taggable::Localized do
       end
 
       let(:en_weight) {[
-        ['ant', 1],
-        ['bee', 2],
         ['food', 3],
+        ['bee', 2],
+        ['ant', 1],
         ['hangar', 1],
         ['honey', 1],
         ['juice', 1],
@@ -240,12 +240,12 @@ describe Mongoid::Taggable::Localized do
       ]}
 
       let(:pt_weight) {[
+        ['spfc', 3],
+        ['rio', 2],
         ['carnaval', 1],
         ['paulista', 1],
-        ['rio', 2],
         ['samba', 1],
-        ['soccer', 1],
-        ['spfc', 3]
+        ['soccer', 1]
       ]}
 
       context 'en locale' do

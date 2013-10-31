@@ -67,6 +67,18 @@ module Mongoid
         def tags_index_collection
           @tags_index_collection ||= Moped::Collection.new(self.collection.database, self.tags_index_collection_name)
         end
+
+        # sort the collection by value and tag name.
+        # ex: [
+        #   ['sass', 7],
+        #   ['javascript', 3],
+        #   ['rails', 3],
+        #   ['ruby', 3],
+        #   ['java', 1]
+        #  ]
+        def sorted_by_rank(collection)
+          collection.sort{|x, y| [y.last, x.first] <=> [x.last, y.first] }
+        end
       end
 
       private

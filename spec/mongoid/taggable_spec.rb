@@ -156,9 +156,9 @@ describe Mongoid::Taggable do
 
       it "should retrieve a list of tags with weight" do
         MyModel.tags_with_weight.should == [
-          ['ant', 1],
-          ['bee', 2],
           ['food', 3],
+          ['bee', 2],
+          ['ant', 1],
           ['honey', 1],
           ['juice', 1],
           ['strip', 1],

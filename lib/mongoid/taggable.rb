@@ -46,7 +46,7 @@ module Mongoid
       # retrieve the list of tags with weight (i.e. count).
       # this is useful for creating tag clouds
       def tags_with_weight
-        tags_on_index { |r| [r['_id'], r['value']] }
+        sorted_by_rank(tags_on_index { |r| [r['_id'], r['value']] })
       end
 
       def map

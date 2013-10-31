@@ -26,10 +26,10 @@ module Mongoid
           tags_on_index { |r| r['_id']['tag'] }
         end
 
-        # retrieve the list of tags with weight by locale (i.e. count).
+        # retrieve a ranked list of tags with weight by locale (i.e. count).
         # this is useful for creating tag clouds
         def tags_with_weight(locale=nil)
-          tags_on_index(locale) { |r| [r['_id']['tag'], r["value"]] }
+          sorted_by_rank(tags_on_index(locale) { |r| [r['_id']['tag'], r['value']] })
         end
 
         # creating a map by tag and locale
