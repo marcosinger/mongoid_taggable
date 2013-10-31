@@ -187,6 +187,20 @@ describe Mongoid::Taggable::Localized do
   end
 
   context "indexing tags" do
+    context 'legacy' do
+      context 'persisted model without localized_tags' do
+        let(:localized) {LocalizedModel.new(tags: {"en" => "food,ant,bee,hangar"})}
+        before {LocalizedModel.create(localized_tags: nil)}
+
+        it {expect {localized.save}.to_not raise_error}
+
+        context 'tags list' do
+          before {localized.save}
+          it {LocalizedModel.tags.should == %w[ant bee food hangar]}
+        end
+      end
+    end
+
     context "retrieving index" do
       context 'en locale' do
         before do
