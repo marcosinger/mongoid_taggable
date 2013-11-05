@@ -68,7 +68,7 @@ module Mongoid
         end
 
         def tags
-          self.localized_tags.fetch("#{I18n.locale}", [])
+          (self.localized_tags.fetch("#{I18n.locale}", [])).join(self.class.separator)
         end
 
         def tags=(localized)

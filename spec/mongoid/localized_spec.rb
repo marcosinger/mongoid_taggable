@@ -45,12 +45,12 @@ describe Mongoid::Taggable::Localized do
     end
 
     context 'en locale' do
-      its(:tags) {should == ["some", "new", "tags"]}
+      its(:tags) {should == "some,new,tags"}
     end
 
     context 'pt-BR locale' do
       before {I18n.locale = 'pt-BR'}
-      its(:tags) {should == ["portuguese", "tags"]}
+      its(:tags) {should == "portuguese,tags"}
     end
 
     context 'locale without a tags list' do
