@@ -1,5 +1,7 @@
 require 'simplecov'
-SimpleCov.start
+SimpleCov.start do
+  add_filter('vendor')
+end
 
 $: << File.expand_path("../../lib", __FILE__)
 
